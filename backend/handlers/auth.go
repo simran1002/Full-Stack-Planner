@@ -23,7 +23,6 @@ type LoginInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
-// UserResponse represents the user data that is safe to send to the client
 type UserResponse struct {
 	ID    uint   `json:"id"`
 	Email string `json:"email"`
@@ -47,32 +46,27 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	// Create new user
 	user := models.User{
 		Email: input.Email,
 		Name:  input.Name,
 	}
 
-	// Hash password before saving
 	if err := user.SetPassword(input.Password); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not process password"})
 		return
 	}
 
-	// Save user to database
 	if err := database.DB.Create(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create user"})
 		return
 	}
 
-	// Generate JWT token
 	token, err := middleware.GenerateToken(user.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
 		return
 	}
 
-	// Return sanitized user data
 	userResponse := UserResponse{
 		ID:    user.ID,
 		Email: user.Email,
@@ -113,7 +107,6 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Return sanitized user data
 	userResponse := UserResponse{
 		ID:    user.ID,
 		Email: user.Email,

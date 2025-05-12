@@ -9,7 +9,7 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-var jwtSecret = []byte("your-secret-key") // In production, this should be loaded from environment variables
+var jwtSecret = []byte("your-secret-key") 
 
 type Claims struct {
 	UserID uint `json:"user_id"`

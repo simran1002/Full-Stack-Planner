@@ -34,30 +34,24 @@ export function TaskForm({
   initialData, 
   isEditing 
 }: TaskFormProps) {
-  // Initialize with empty values for new tasks
   const [task, setTask] = useState<Partial<Task>>({
     Title: '',
     Description: '',
     Status: 'Pending' as "Pending" | "In-Progress" | "Completed",
     Priority: 'Medium' as "Low" | "Medium" | "High" | "Critical",
     DueDate: '',
-    // Remove Tags field as it's causing SQL issues
   });
   
-  // Log when the form opens or closes to help with debugging
   useEffect(() => {
     console.log('TaskForm open state changed:', open);
   }, [open]);
 
-  // Update form when initialData changes (for editing) or when creating new task
   useEffect(() => {
     if (initialData) {
-      // For editing existing task
       console.log('Editing task with initial data:', initialData);
       try {
         setTask({
           ...initialData,
-          // Format the date for the input field
           DueDate: initialData.DueDate ? format(new Date(initialData.DueDate), 'yyyy-MM-dd') : '',
         });
       } catch (error) {
@@ -68,7 +62,6 @@ export function TaskForm({
         });
       }
     } else if (!isEditing) {
-      // For creating new task - set default values only when form opens
       setTask({
         Title: '',
         Description: '',
@@ -97,29 +90,25 @@ export function TaskForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields
     if (!task.Title?.trim()) {
       alert('Task title is required');
       return;
     }
     
-    // Ensure required fields have values
     const formattedTask = { 
       ...task,
       Status: task.Status || 'Pending',
       Priority: task.Priority || 'Medium'
     };
     
-    // Ensure DueDate is in the correct format
     if (task.DueDate) {
       try {
-        // Parse the date and format it as ISO string
         const dueDate = new Date(task.DueDate);
-        // Check if the date is valid
+        
         if (isNaN(dueDate.getTime())) {
           throw new Error('Invalid date');
         }
-        // Use the original string format from the input
+       
         formattedTask.DueDate = task.DueDate;
       } catch (error) {
         console.error('Date parsing error:', error);
@@ -127,14 +116,12 @@ export function TaskForm({
         return;
       }
     } else {
-      // Set default due date if not provided
       formattedTask.DueDate = format(new Date(), 'yyyy-MM-dd');
     }
     
     console.log('Submitting task:', formattedTask);
     onSubmit(formattedTask);
     
-    // Close the dialog after submission
     onOpenChange(false);
   };
 

@@ -15,7 +15,6 @@ const Register = () => {
   const navigate = useNavigate();
   const { register, isAuthenticated } = useAuth();
   
-  // Redirect if already authenticated
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (isAuthenticated || token) {
@@ -47,7 +46,6 @@ const Register = () => {
       }
       
       await register(email, password, name);
-      // Explicitly navigate after successful registration
       navigate('/tasks', { replace: true });
     } catch (err: any) {
       console.error('Registration error:', err);

@@ -19,7 +19,6 @@ export function TaskCard({ task, onEdit, onDelete, index, onStatusChange }: Task
   const cardRef = useRef<HTMLDivElement>(null);
   const { isDarkMode } = useTheme();
   
-  // Function to determine badge color based on status
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Pending':
@@ -33,7 +32,6 @@ export function TaskCard({ task, onEdit, onDelete, index, onStatusChange }: Task
     }
   };
   
-  // Function to determine priority color
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'High':
@@ -47,7 +45,6 @@ export function TaskCard({ task, onEdit, onDelete, index, onStatusChange }: Task
     }
   };
   
-  // Function to get priority icon
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
       case 'High':
@@ -61,30 +58,24 @@ export function TaskCard({ task, onEdit, onDelete, index, onStatusChange }: Task
     }
   };
   
-  // State to track if the card is being dragged
   const [isDragging, setIsDragging] = useState(false);
 
-  // Apply fade-in animation when component mounts
   useEffect(() => {
     if (cardRef.current) {
       fadeIn(cardRef.current, 600, index * 50);
     }
   }, [index]);
   
-  // Handle card click for animation effect
   const handleCardClick = () => {
     if (cardRef.current && !isDragging) {
       pulseAnimation(cardRef.current);
     }
   };
   
-  // Handle task completion with celebration animation
   const handleTaskCompletion = (taskId: number) => {
     if (cardRef.current) {
-      // Use anime.js directly for a celebration animation
       const anime = (window as any).anime;
       if (anime) {
-        // First create the confetti particles
         const confettiColors = ['#FF1461', '#18FF92', '#5A87FF', '#FBF38C'];
         const confettiContainer = document.createElement('div');
         confettiContainer.style.position = 'absolute';
@@ -96,7 +87,6 @@ export function TaskCard({ task, onEdit, onDelete, index, onStatusChange }: Task
         confettiContainer.style.zIndex = '50';
         document.body.appendChild(confettiContainer);
         
-        // Create confetti particles
         const confettiCount = 30;
         const confettiParticles = [];
         
@@ -111,12 +101,10 @@ export function TaskCard({ task, onEdit, onDelete, index, onStatusChange }: Task
           confettiParticles.push(particle);
         }
         
-        // Get the position of the card
         const rect = cardRef.current.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
         
-        // Animate the confetti
         anime({
           targets: confettiParticles,
           left: () => centerX + anime.random(-200, 200),
@@ -127,12 +115,10 @@ export function TaskCard({ task, onEdit, onDelete, index, onStatusChange }: Task
           easing: 'easeOutExpo',
           delay: anime.stagger(10),
           complete: () => {
-            // Clean up the confetti container
             document.body.removeChild(confettiContainer);
           }
         });
         
-        // Animate the card
         anime({
           targets: cardRef.current,
           scale: [1, 1.1, 1],
@@ -143,34 +129,29 @@ export function TaskCard({ task, onEdit, onDelete, index, onStatusChange }: Task
       }
     }
     
-    // Call the status change handler
     if (onStatusChange) {
       onStatusChange(taskId, 'Completed');
     }
   };
   
-  // Clean up when component unmounts
   useEffect(() => {
     return () => {
       setIsDragging(false);
     };
   }, []);
 
-  // Handle potential field name mismatches (backend uses lowercase, frontend uses uppercase)
   const title = task.Title || task.title || 'Untitled Task';
   const description = task.Description || task.description || '';
   const status = task.Status || task.status || 'Pending';
   const dueDate = task.DueDate || task.due_date;
   const createdAt = task.CreatedAt || task.created_at;
   
-  // Format due date if it exists
   const formattedDueDate = dueDate 
     ? format(new Date(dueDate), 'PPP') 
     : 'No due date';
     
-  // Format creation date if it exists
   const formattedCreatedAt = createdAt
-    ? format(new Date(createdAt), 'PPP p') // Date and time format
+    ? format(new Date(createdAt), 'PPP p') 
     : 'Unknown';
 
   return (

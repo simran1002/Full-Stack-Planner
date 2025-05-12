@@ -15,12 +15,10 @@ import (
 )
 
 func main() {
-	// Load environment variables
 	if err := godotenv.Load("config.postgres.env"); err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-	// Initialize database
 	dbConfig := database.Config{
 		Host:          os.Getenv("DB_HOST"),
 		Port:          os.Getenv("DB_PORT"),
@@ -35,13 +33,10 @@ func main() {
 	database.InitDBWithConfig(dbConfig)
 	defer database.CloseDB()
 
-	// Auto-migrate the database
 	database.DB.AutoMigrate(&models.User{}, &models.Task{})
 
-	// Set up router
 	r := gin.Default()
 
-	// Enable CORS
 	r.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -56,25 +51,20 @@ func main() {
 		c.Next()
 	})
 
-	// Public routes
 	r.POST("/register", handlers.Register)
 	r.POST("/login", handlers.Login)
 
-	// Protected routes
 	protected := r.Group("/")
 	protected.Use(middleware.AuthMiddleware())
 	{
-		// Task routes
 		protected.GET("/tasks", handlers.GetTasks)
 		protected.POST("/tasks", handlers.CreateTask)
 		protected.PUT("/tasks/:id", handlers.UpdateTask)
 		protected.DELETE("/tasks/:id", handlers.DeleteTask)
 
-		// WebSocket route for real-time updates
 		protected.GET("/ws", handlers.TaskWebSocket)
 	}
 
-	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

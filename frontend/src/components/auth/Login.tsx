@@ -15,19 +15,16 @@ const Login = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuth();
 
-  // Check if already authenticated
   useEffect(() => {
     const hasToken = localStorage.getItem('token');
     console.log('Login component mounted, auth status:', { isAuthenticated, hasToken });
 
-    // If authenticated, redirect to tasks
     if (isAuthenticated || hasToken) {
       console.log('Already authenticated, redirecting to tasks');
       navigate('/tasks', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
-  // Handle successful login
   useEffect(() => {
     if (loginSuccess) {
       console.log('Login was successful, redirecting to tasks');
@@ -49,14 +46,11 @@ const Login = () => {
         throw new Error('Password is required');
       }
 
-      // Attempt login
       await login(email, password);
       console.log('Login successful, setting success state');
 
-      // Set success state which will trigger redirection
       setLoginSuccess(true);
 
-      // Also navigate directly to ensure redirection happens
       navigate('/tasks', { replace: true });
     } catch (err: any) {
       console.error('Login error:', err);

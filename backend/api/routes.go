@@ -4,15 +4,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SetupRoutes configures the API routes
 func SetupRoutes(router *gin.Engine) {
-	// Add CORS middleware
 	router.Use(CORSMiddleware())
 
-	// Group routes under /api
 	api := router.Group("/api")
 	{
-		// Task routes
 		api.GET("/tasks", GetTasks)
 		api.GET("/tasks/:id", GetTask)
 		api.POST("/tasks", CreateTask)
@@ -21,7 +17,6 @@ func SetupRoutes(router *gin.Engine) {
 	}
 }
 
-// CORSMiddleware handles CORS headers
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")

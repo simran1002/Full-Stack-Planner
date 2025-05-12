@@ -57,23 +57,19 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
   const listRef = useRef<HTMLDivElement>(null);
   const columnsRef = useRef<HTMLDivElement[]>([]);
   
-  // Set up refs for column animations
   const setColumnRef = (el: HTMLDivElement | null, index: number) => {
     if (el && columnsRef.current) {
       columnsRef.current[index] = el;
     }
   };
   
-  // Update columns when tasks change
   useEffect(() => {
     let filteredTasks = [...tasks];
     
-    // Apply status filter if provided
     if (filterStatus) {
       filteredTasks = filteredTasks.filter(task => task.Status === filterStatus);
     }
     
-    // Apply due date filter if provided
     if (filterDueDate) {
       filteredTasks = filteredTasks.filter(task => {
         if (!task.DueDate) return false;
@@ -88,7 +84,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
       });
     }
     
-    // Sort tasks by priority (High > Medium > Low)
     filteredTasks.sort((a, b) => {
       const priorityOrder = { 'High': 0, 'Medium': 1, 'Low': 2 };
       const aPriority = a.Priority || 'Medium';
@@ -97,7 +92,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
              (priorityOrder[bPriority as keyof typeof priorityOrder] || 1);
     });
     
-    // Group tasks by status
     const newColumns = {
       'Pending': { 
         title: 'Pending', 
@@ -130,7 +124,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
     
     setColumns(newColumns);
     
-    // Apply stagger animation to task cards
     setTimeout(() => {
       if (listRef.current) {
         const taskCards = listRef.current.querySelectorAll('.task-card');
@@ -140,7 +133,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
       }
     }, 100);
     
-    // Apply slide-in animation to columns
     setTimeout(() => {
       columnsRef.current.forEach((column, index) => {
         if (column) {
@@ -150,28 +142,22 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
     }, 200);
   }, [tasks, filterStatus, filterDueDate, isDarkMode]);
   
-  // State for drag and drop
   const [draggedElement, setDraggedElement] = useState<HTMLElement | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const dragStartPos = useRef({ x: 0, y: 0 });
   const draggedTaskInitialStatus = useRef<string | null>(null);
   
-  // Handle drag start
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, task: Task) => {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', JSON.stringify(task));
     
-    // Store the initial position
     dragStartPos.current = { x: e.clientX, y: e.clientY };
     
-    // Store the element and status
     setDraggedElement(e.currentTarget as HTMLElement);
     draggedTaskInitialStatus.current = task.Status || null;
     
-    // Apply drag start animation
     const anime = (window as any).anime;
     if (anime && e.currentTarget) {
-      // Create a clone for the drag ghost
       const rect = e.currentTarget.getBoundingClientRect();
       const ghost = e.currentTarget.cloneNode(true) as HTMLElement;
       ghost.style.position = 'fixed';
@@ -187,19 +173,16 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
       ghost.classList.add('task-dragging');
       document.body.appendChild(ghost);
       
-      // Set the drag image to be transparent (we'll use our custom ghost)
       const img = new Image();
       img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
       e.dataTransfer.setDragImage(img, 0, 0);
       
-      // Update ghost position during drag
       const updateGhostPosition = (moveEvent: MouseEvent) => {
         const dx = moveEvent.clientX - dragStartPos.current.x;
         const dy = moveEvent.clientY - dragStartPos.current.y;
         ghost.style.transform = `translate(${dx}px, ${dy}px) scale(1.05)`;
       };
       
-      // Clean up ghost on drag end
       const removeGhost = () => {
         document.body.removeChild(ghost);
         document.removeEventListener('mousemove', updateGhostPosition);
@@ -209,7 +192,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
       document.addEventListener('mousemove', updateGhostPosition);
       document.addEventListener('dragend', removeGhost);
       
-      // Add visual effect to the original element
       anime({
         targets: e.currentTarget,
         scale: 0.95,
@@ -220,7 +202,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
     }
   };
   
-  // Handle drag over
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>, columnId: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -228,11 +209,9 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
     if (dragOverColumn !== columnId) {
       setDragOverColumn(columnId);
       
-      // Highlight the column
       const columnElement = e.currentTarget;
       columnElement.classList.add('column-highlight');
       
-      // Remove highlight from other columns
       document.querySelectorAll('.column-container').forEach(col => {
         if (col !== columnElement) {
           col.classList.remove('column-highlight');
@@ -241,37 +220,28 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
     }
   };
   
-  // Handle drag leave
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    // Only remove highlight if we're leaving the column (not entering a child element)
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       e.currentTarget.classList.remove('column-highlight');
       setDragOverColumn(null);
     }
   };
   
-  // Handle drop
   const handleDrop = (e: React.DragEvent<HTMLDivElement>, columnId: string) => {
     e.preventDefault();
     e.currentTarget.classList.remove('column-highlight');
     
     try {
-      // Get the dropped task
       const taskData = e.dataTransfer.getData('text/plain');
       const task = JSON.parse(taskData) as Task;
       
-      // If dropped in a different column
       if (task.Status !== columnId && task.ID !== undefined) {
-        // Apply anime.js animation to the destination column
         const destinationColumn = e.currentTarget;
         
-        // Add a class for immediate visual feedback
         destinationColumn.classList.add('column-highlight');
         
-        // Use anime.js for advanced animation effects
         const anime = (window as any).anime;
         if (anime) {
-          // Create particles effect
           const particleCount = 15;
           const particles: HTMLElement[] = [];
           const particleContainer = document.createElement('div');
@@ -280,13 +250,11 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
           particleContainer.style.zIndex = '50';
           destinationColumn.appendChild(particleContainer);
           
-          // Get column colors based on status
-          let particleColor = '#4ade80'; // Default green
+          let particleColor = '#4ade80'; 
           if (columnId === 'Pending') particleColor = '#fbbf24';
           if (columnId === 'In-Progress') particleColor = '#60a5fa';
           if (columnId === 'Completed') particleColor = '#34d399';
           
-          // Create particles
           for (let i = 0; i < particleCount; i++) {
             const particle = document.createElement('div');
             particle.style.position = 'absolute';
@@ -299,7 +267,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
             particles.push(particle);
           }
           
-          // Animate particles
           anime({
             targets: particles,
             translateX: () => anime.random(-100, 100),
@@ -314,7 +281,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
             }
           });
           
-          // Animate the column
           anime({
             targets: destinationColumn,
             scale: [1, 1.02, 1],
@@ -330,7 +296,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
             }
           });
           
-          // Reset the dragged element
           if (draggedElement) {
             anime({
               targets: draggedElement,
@@ -342,7 +307,6 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
           }
         }
         
-        // Update task status
         if (onUpdateTaskStatus) {
           onUpdateTaskStatus(task.ID, columnId);
         }
@@ -351,21 +315,17 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
       console.error('Error handling drop:', error);
     }
     
-    // Reset drag state
     setDraggedElement(null);
     setDragOverColumn(null);
   };
   
-  // Handle drag end
   const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     
-    // Reset all column highlights
     document.querySelectorAll('.column-container').forEach(col => {
       col.classList.remove('column-highlight');
     });
     
-    // Reset the dragged element
     if (draggedElement) {
       const anime = (window as any).anime;
       if (anime) {
@@ -379,19 +339,16 @@ export function TaskList({ tasks, onEditTask, onDeleteTask, onUpdateTaskStatus, 
       }
     }
     
-    // Reset drag state
     setDraggedElement(null);
     setDragOverColumn(null);
   };
   
-  // Handle status change via button click
   const handleStatusChange = (taskId: number, newStatus: string) => {
     if (onUpdateTaskStatus) {
       onUpdateTaskStatus(taskId, newStatus);
     }
   };
   
-  // Check if there are any tasks to display
   const hasAnyTasks = Object.values(columns).some(column => column.items.length > 0);
   
   return (

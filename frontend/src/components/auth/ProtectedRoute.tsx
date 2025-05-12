@@ -8,7 +8,6 @@ const ProtectedRoute = () => {
   const [hasChecked, setHasChecked] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   
-  // Check authentication status on mount and when dependencies change
   useEffect(() => {
     const token = localStorage.getItem('token');
     const authorized = !!token || isAuthenticated;
@@ -24,7 +23,6 @@ const ProtectedRoute = () => {
     setHasChecked(true);
   }, [isAuthenticated, location.pathname]);
   
-  // Show loading indicator while checking authentication
   if (isLoading || !hasChecked) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -33,13 +31,11 @@ const ProtectedRoute = () => {
     );
   }
   
-  // If not authorized after checking, redirect to login
   if (!isAuthorized) {
     console.log('Not authorized, redirecting to login');
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
   
-  // User is authorized, render the protected route
   console.log('User is authorized, rendering protected content');
   return <Outlet />;
 };

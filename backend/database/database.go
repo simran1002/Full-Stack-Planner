@@ -7,11 +7,10 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
-	_ "github.com/lib/pq" // PostgreSQL driver
+	_ "github.com/lib/pq"
 	"taskmanager/models"
 )
 
-// Config holds database configuration
 type Config struct {
 	Host     string
 	Port     string
@@ -23,10 +22,8 @@ type Config struct {
 	RetryInterval time.Duration
 }
 
-// DB is the database connection
 var DB *gorm.DB
 
-// DefaultConfig returns a default configuration
 func DefaultConfig() Config {
 	return Config{
 		Host:     getEnv("DB_HOST", "localhost"),
@@ -40,20 +37,17 @@ func DefaultConfig() Config {
 	}
 }
 
-// InitDB initializes the database connection
 func InitDB() {
 	config := DefaultConfig()
 	InitDBWithConfig(config)
 }
 
-// InitDBWithConfig initializes the database with the provided configuration
 func InitDBWithConfig(config Config) {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		config.Host, config.Port, config.User, config.Password, config.DBName, config.SSLMode)
 	
 	log.Println("Connecting to PostgreSQL database...")
 	
-	// Attempt to connect with retries
 	var err error
 	for i := 0; i < config.MaxRetries; i++ {
 		DB, err = gorm.Open("postgres", dsn)
@@ -72,34 +66,26 @@ func InitDBWithConfig(config Config) {
 		log.Fatalf("Failed to connect to PostgreSQL database after %d attempts: %v", config.MaxRetries, err)
 	}
 
-	// Set connection pool settings for production
 	DB.DB().SetMaxIdleConns(10)
-	// Increased for better performance under load
 	DB.DB().SetMaxOpenConns(100)
-	// Set connection lifetime
 	DB.DB().SetConnMaxLifetime(time.Hour)
 
-	// Enable logging for development
 	DB.LogMode(true)
 
-	// Auto migrate the schema
 	DB.AutoMigrate(&models.Task{})
 	log.Println("PostgreSQL database initialized successfully")
 }
 
-// GetDB returns the database connection
 func GetDB() *gorm.DB {
 	return DB
 }
 
-// CloseDB closes the database connection
 func CloseDB() {
 	if DB != nil {
 		DB.Close()
 	}
 }
 
-// Helper function to get environment variable with a default value
 func getEnv(key, defaultValue string) string {
 	value := os.Getenv(key)
 	if value == "" {

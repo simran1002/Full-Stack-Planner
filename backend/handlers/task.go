@@ -16,21 +16,19 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true // In production, this should be more restrictive
+		return true 
 	},
 }
 
 var clients = make(map[uint][]*websocket.Conn)
 
 func notifyTaskUpdate(userID uint) {
-	// Log notification attempt
 	log.Printf("Attempting to notify user %d about task update", userID)
 	
 	if connections, ok := clients[userID]; ok {
 		log.Printf("Found %d active connections for user %d", len(connections), userID)
 		
 		for i, conn := range connections {
-			// Send a more detailed update message
 			message := []byte("update")
 			if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
 				log.Printf("Error sending update to connection %d: %v", i, err)
@@ -48,12 +46,10 @@ func TaskWebSocket(c *gin.Context) {
 	userID := c.GetUint("userID")
 	token := c.Query("token")
 	
-	// Log connection attempt
 	log.Printf("WebSocket connection attempt from user %d with token: %s", userID, token)
 	
-	// Configure the upgrader with more permissive settings
 	upgrader.CheckOrigin = func(r *http.Request) bool {
-		return true // Allow all origins in development
+		return true 
 	}
 	
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -62,32 +58,26 @@ func TaskWebSocket(c *gin.Context) {
 		return
 	}
 
-	// Initialize client connections for this user if needed
 	if clients[userID] == nil {
 		clients[userID] = make([]*websocket.Conn, 0)
 	}
 	clients[userID] = append(clients[userID], ws)
 	
-	// Send a test message to confirm connection
 	if err := ws.WriteMessage(websocket.TextMessage, []byte("update")); err != nil {
 		log.Printf("Error sending test message: %v", err)
 	} else {
 		log.Printf("Test message sent successfully to user %d", userID)
 	}
 
-	// Log successful connection
 	log.Printf("WebSocket connection established for user %d", userID)
 	
-	// Set up a ping handler to keep the connection alive
 	ws.SetPingHandler(func(string) error {
 		log.Printf("Received ping from user %d", userID)
 		return ws.WriteControl(websocket.PongMessage, []byte{}, time.Now().Add(time.Second))
 	})
 
-	// Start a goroutine to listen for messages from the client
 	go func() {
 		for {
-			// Read message
 			messageType, message, err := ws.ReadMessage()
 			if err != nil {
 				log.Printf("Error reading message from user %d: %v", userID, err)
@@ -95,20 +85,17 @@ func TaskWebSocket(c *gin.Context) {
 			}
 			log.Printf("Received message from user %d: %s", userID, string(message))
 			
-			// Echo the message back (useful for client-side connection testing)
 			if err := ws.WriteMessage(messageType, message); err != nil {
 				log.Printf("Error echoing message to user %d: %v", userID, err)
 				break
 			}
 		}
 		
-		// Clean up when the read loop exits
 		clients[userID] = removeConnection(clients[userID], ws)
 		ws.Close()
 		log.Printf("WebSocket read loop ended for user %d", userID)
 	}()
 
-	// Clean up on disconnect
 	go func() {
 		<-c.Done()
 		clients[userID] = removeConnection(clients[userID], ws)
@@ -156,32 +143,28 @@ func GetTasks(c *gin.Context) {
 	c.JSON(http.StatusOK, tasks)
 }
 
-// TaskRequest represents the JSON structure for task creation/update requests
 type TaskRequest struct {
 	Title       string `json:"title" binding:"required"`
 	Description string `json:"description"`
 	Status      string `json:"status" binding:"required,oneof=Pending In-Progress Completed"`
 	Priority    string `json:"priority" binding:"required,oneof=Low Medium High Critical"`
-	DueDate     string `json:"due_date"` // Changed to string to handle different date formats
+	DueDate     string `json:"due_date"` 
 }
 
 func CreateTask(c *gin.Context) {
 	userID := c.GetUint("userID")
 
-	// Use TaskRequest struct to bind the JSON data
 	var taskReq TaskRequest
 	if err := c.ShouldBindJSON(&taskReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Parse the due date string into a time.Time
 	var dueDate time.Time
 	var err error
 	if taskReq.DueDate != "" {
 		log.Printf("Attempting to parse date: '%s'", taskReq.DueDate)
 		
-		// Simple case - just use the date string directly if it's in YYYY-MM-DD format
 		if len(taskReq.DueDate) == 10 && taskReq.DueDate[4] == '-' && taskReq.DueDate[7] == '-' {
 			dueDate, err = time.Parse("2006-01-02", taskReq.DueDate)
 			if err == nil {
@@ -190,14 +173,13 @@ func CreateTask(c *gin.Context) {
 				log.Printf("Failed to parse as YYYY-MM-DD: %v", err)
 			}
 		} else {
-			// Try parsing different date formats
 			formats := []string{
-				"2006-01-02",           // YYYY-MM-DD
-				"2006-01-02T15:04:05Z",  // ISO format
-				"2006-01-02T15:04:05",   // ISO format without Z
-				"01/02/2006",           // MM/DD/YYYY
-				"02-01-2006",           // DD-MM-YYYY
-				time.RFC3339,            // Standard RFC3339
+				"2006-01-02",           
+				"2006-01-02T15:04:05Z",  
+				"2006-01-02T15:04:05",  
+				"01/02/2006",           
+				"02-01-2006",           
+				time.RFC3339,            
 			}
 
 			parsed := false
@@ -211,9 +193,8 @@ func CreateTask(c *gin.Context) {
 			}
 
 			if !parsed {
-				// Last resort - try to create a date from just the date part
 				if len(taskReq.DueDate) > 10 {
-					datePart := taskReq.DueDate[:10] // Extract just YYYY-MM-DD part
+					datePart := taskReq.DueDate[:10] 
 					dueDate, err = time.Parse("2006-01-02", datePart)
 					if err == nil {
 						parsed = true
@@ -223,18 +204,15 @@ func CreateTask(c *gin.Context) {
 				
 				if !parsed {
 					log.Printf("Error parsing date '%s': %v", taskReq.DueDate, err)
-					// Instead of returning an error, use current date
 					log.Printf("Using current date instead")
 					dueDate = time.Now()
 				}
 			}
 		}
 	} else {
-		// Default to current date if not provided
 		dueDate = time.Now()
 	}
 
-	// Create a new Task with the bound data
 	task := models.Task{
 		UserID:      userID,
 		Title:       taskReq.Title,
@@ -257,7 +235,6 @@ func UpdateTask(c *gin.Context) {
 	userID := c.GetUint("userID")
 	taskID := c.Param("id")
 
-	// Check if task exists and belongs to user
 	var existingTask models.Task
 	result := database.DB.Where("id = ? AND user_id = ?", taskID, userID).First(&existingTask)
 	if result.Error != nil {
@@ -265,20 +242,17 @@ func UpdateTask(c *gin.Context) {
 		return
 	}
 
-	// Use TaskRequest struct to bind the JSON data
 	var taskReq TaskRequest
 	if err := c.ShouldBindJSON(&taskReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Parse the due date string into a time.Time
 	var dueDate time.Time
 	var err error
 	if taskReq.DueDate != "" {
 		log.Printf("Attempting to parse date for update: '%s'", taskReq.DueDate)
 		
-		// Simple case - just use the date string directly if it's in YYYY-MM-DD format
 		if len(taskReq.DueDate) == 10 && taskReq.DueDate[4] == '-' && taskReq.DueDate[7] == '-' {
 			dueDate, err = time.Parse("2006-01-02", taskReq.DueDate)
 			if err == nil {
@@ -287,14 +261,13 @@ func UpdateTask(c *gin.Context) {
 				log.Printf("Failed to parse as YYYY-MM-DD: %v", err)
 			}
 		} else {
-			// Try parsing different date formats
 			formats := []string{
-				"2006-01-02",           // YYYY-MM-DD
-				"2006-01-02T15:04:05Z",  // ISO format
-				"2006-01-02T15:04:05",   // ISO format without Z
-				"01/02/2006",           // MM/DD/YYYY
-				"02-01-2006",           // DD-MM-YYYY
-				time.RFC3339,            // Standard RFC3339
+				"2006-01-02",           
+				"2006-01-02T15:04:05Z",  
+				"2006-01-02T15:04:05",   
+				"01/02/2006",           
+				"02-01-2006",           
+				time.RFC3339,            
 			}
 
 			parsed := false
@@ -308,9 +281,8 @@ func UpdateTask(c *gin.Context) {
 			}
 
 			if !parsed {
-				// Last resort - try to create a date from just the date part
 				if len(taskReq.DueDate) > 10 {
-					datePart := taskReq.DueDate[:10] // Extract just YYYY-MM-DD part
+					datePart := taskReq.DueDate[:10] 
 					dueDate, err = time.Parse("2006-01-02", datePart)
 					if err == nil {
 						parsed = true
@@ -320,18 +292,15 @@ func UpdateTask(c *gin.Context) {
 				
 				if !parsed {
 					log.Printf("Error parsing date '%s': %v", taskReq.DueDate, err)
-					// Keep the existing due date instead of returning an error
 					dueDate = existingTask.DueDate
 					log.Printf("Using existing due date: %v", dueDate)
 				}
 			}
 		}
 	} else {
-		// Keep the existing due date if not provided
 		dueDate = existingTask.DueDate
 	}
 
-	// Update the task with the new data
 	existingTask.Title = taskReq.Title
 	existingTask.Description = taskReq.Description
 	existingTask.Status = taskReq.Status
